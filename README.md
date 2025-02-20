@@ -1,5 +1,7 @@
 # Todo CLI Application
 
+[![Rust](https://github.com/mingcheng/todo-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/mingcheng/todo-rs/actions/workflows/rust.yml)
+
 ![screenshot](./asserts/screenshot.png)
 
 A simple command-line todo list manager written in Rust. This is my first project in Rust, so it may not be idiomatic.
