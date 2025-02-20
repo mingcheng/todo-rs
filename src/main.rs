@@ -9,7 +9,7 @@
  * File Created: 2025-02-19 14:51:13
  *
  * Modified By: mingcheng (mingcheng@apache.org)
- * Last Modified: 2025-02-20 10:33:37
+ * Last Modified: 2025-02-20 11:02:41
  */
 
 use clap::{Parser, Subcommand};
@@ -62,7 +62,11 @@ enum Commands {
     Clear,
 }
 
+// value gets baked into the application at compile time
+const BUILT_ON: &str = build_time::build_time_local!("%Y-%m-%d %H:%M:%S %:z");
+
 fn main() -> TodoResult<()> {
+    // parse the command line arguments
     let cli = Cli::parse();
 
     trace!(
@@ -79,6 +83,7 @@ fn main() -> TodoResult<()> {
         .with_target(false)
         .init();
 
+    debug!("This binary was compiled on {}", BUILT_ON);
     debug!(
         "specified the file path {:?} to  get and store the todo list",
         cli.file_path
