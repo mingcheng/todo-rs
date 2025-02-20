@@ -1,0 +1,7 @@
+services:
+  todo:
+    build:
+      context: .
+    network_mode: host
+    environment:
+      TZ: "Asia/Shanghai"

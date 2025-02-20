@@ -1,0 +1,8 @@
+/target
+/.idea
+*~
+/*.json
+Thumbs.db
+.DS*
+/.vscode/*.log
+.*~
