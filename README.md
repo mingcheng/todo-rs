@@ -4,7 +4,7 @@
 
 ![screenshot](./asserts/screenshot.png)
 
-A simple command-line todo list manager written in Rust. This is my first project in Rust, so it may not be idiomatic.
+A simple command-line todo list manager written in Rust. This is my first project in Rust, so it may not be idiomatic. And I'm not a professional Rust developer, so there are many things to improve.
 
 ## Features
 
@@ -50,6 +50,23 @@ todo --file-path todo.json --verbose list
 ## Environment Variables
 
 - `TODO_FILE_PATH`: Set the default path for the todo list file
+
+
+## Build with Docker
+
+Our Dockerfile is based on the `rust:alpine` image. And for more details, you can refer to the [Dockerfile](./Dockerfile). Build the image is very simple, just run the following command:
+
+```bash
+docker compose build
+```
+
+Run the container is also very simple, just run the following command:
+
+```bash
+docker compose run todo
+```
+
+The container will run the `todo` command with the default arguments.
 
 ## License
 

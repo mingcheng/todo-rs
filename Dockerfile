@@ -14,6 +14,7 @@ RUN apk add --no-cache \
 ENV BUILD_DIR="/build"
 
 # Set rustup mirror to accelerate the build
+ENV RUSTUP_UPDATE_ROOT="https://mirrors.cernet.edu.cn/rustup/rustup"
 ENV RUSTUP_DIST_SERVER="https://mirrors.cernet.edu.cn/rustup"
 
 # Update the latest stable version of rust toolkit
@@ -23,6 +24,7 @@ RUN rustup default stable && rustup override set stable
 COPY . ${BUILD_DIR}
 WORKDIR ${BUILD_DIR}
 
+# Build the application
 RUN cargo build --release \
     && ./target/release/todo --help \
     && cp target/release/todo /bin/todo

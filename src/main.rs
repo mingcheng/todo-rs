@@ -9,21 +9,23 @@
  * File Created: 2025-02-19 14:51:13
  *
  * Modified By: mingcheng (mingcheng@apache.org)
- * Last Modified: 2025-02-20 11:02:41
+ * Last Modified: 2025-03-04 19:33:29
  */
 
+use anyhow::Result;
 use clap::{Parser, Subcommand};
 use comfy_table::{Cell, CellAlignment, Color, ContentArrangement, Table};
-use log::{debug, error, info, trace};
+use dialoguer::Confirm;
+use log::{debug, error};
 use std::fmt::Debug;
 use todo::task::Task;
-use todo::todo::{Todo, TodoResult};
+use todo::todo::Todo;
 use tracing::Level;
 
 /// A fictional simple command line tool for generating todo list
 #[derive(Debug, Parser)]
 #[command(name = "todo")]
-// #[command(about = "A fictional versioning CLI", long_about = None)]
+#[command(about = "A simple CLI todo list manager", version)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -62,17 +64,16 @@ enum Commands {
     Clear,
 }
 
-// value gets baked into the application at compile time
+// Group constants together
 const BUILT_ON: &str = build_time::build_time_local!("%Y-%m-%d %H:%M:%S %:z");
+const COMPLETED: &str = "✓ Completed";
+const PENDING: &str = "⧖ Pending";
+const TABLE_HEADERS: [&str; 3] = ["INDEX", "TOPIC", "STATUS"];
 
-fn main() -> TodoResult<()> {
-    // parse the command line arguments
+fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    trace!(
-        "Initializing the logger, with verbose mode: {}",
-        if cli.verbose { "on" } else { "off" }
-    );
+    // Initialize logging
     tracing_subscriber::fmt()
         .with_max_level(if cli.verbose {
             Level::TRACE
@@ -84,84 +85,88 @@ fn main() -> TodoResult<()> {
         .init();
 
     debug!("This binary was compiled on {}", BUILT_ON);
-    debug!(
-        "specified the file path {:?} to  get and store the todo list",
-        cli.file_path
-    );
-    trace!("Creating a new todo instance with path: {}", cli.file_path);
-    let mut todo = Todo::new(cli.file_path.as_str()).unwrap();
+    let mut todo = match Todo::new(&cli.file_path) {
+        Ok(todo) => todo,
+        Err(e) => {
+            error!("Failed to initialize todo list: {}", e);
+            return Err(anyhow::anyhow!("Failed to initialize todo list: {}", e));
+        }
+    };
 
     match cli.command {
         Commands::Add { description } => {
-            info!("Adding a new task: {:?}", description);
             todo.add(Task {
-                description,
+                description: description.trim().to_string(),
                 completed: false,
-            });
+            })
+            .map_err(|e| anyhow::anyhow!("Failed to add task: {}", e))?;
+            println!("Task added successfully!");
         }
         Commands::Delete { index } => {
-            info!("Deleting task at index: {}", index);
-            let _ = todo.delete(index);
-        }
-        Commands::Complete { index } => {
-            info!("Completing task at index: {}", index);
-            match todo.complete(index) {
-                Ok(_) => {
-                    info!("Task completed successfully");
-                }
-                Err(e) => {
-                    error!("Failed to complete task: {}", e);
-                }
+            if Confirm::new()
+                .with_prompt(format!("Are you sure you want to delete task {}?", index))
+                .default(false)
+                .interact()?
+            {
+                todo.delete(index)
+                    .map_err(|e| anyhow::anyhow!("Failed to delete task: {}", e))?;
+                println!("Task deleted successfully!");
             }
         }
+        Commands::Complete { index } => {
+            todo.complete(index)
+                .map_err(|e| anyhow::anyhow!("Failed to complete task: {}", e))?;
+            println!("Task marked as completed!");
+        }
         Commands::List => {
-            info!("Listing all tasks");
-            let tasks = todo.list()?;
+            let tasks = todo
+                .list()
+                .map_err(|e| anyhow::anyhow!("Failed to list tasks: {}", e))?;
 
             if tasks.is_empty() {
-                println!(
-                    "The tasks list is empty, you can add a new task by `todo add <description>`"
-                );
+                println!("No tasks found. Add one with: todo add <description>");
                 return Ok(());
             }
 
-            const COMPLETED: &str = "Completed";
-            const PENDING: &str = "Pending";
-
             let mut table = Table::new();
             table
-                // .load_preset(UTF8_FULL)
-                // .apply_modifier(UTF8_ROUND_CORNERS)
                 .set_content_arrangement(ContentArrangement::Dynamic)
-                .set_header(vec!["INDEX", "TOPIC", "STATUS"]);
+                .set_header(TABLE_HEADERS);
 
             for (i, task) in tasks.iter().enumerate() {
                 let status_cell = if task.completed {
                     Cell::new(COMPLETED).fg(Color::Green)
                 } else {
-                    Cell::new(PENDING).fg(Color::Red)
+                    Cell::new(PENDING).fg(Color::Yellow)
                 };
 
                 table.add_row(vec![
                     Cell::new(i.to_string()).set_alignment(CellAlignment::Center),
-                    Cell::new(task.description.clone()),
-                    status_cell,
+                    Cell::new(&task.description),
+                    status_cell.set_alignment(CellAlignment::Center),
                 ]);
             }
 
             println!("{table}");
         }
         Commands::Export => {
-            trace!("Exporting tasks to a stdout");
-            let tasks = todo.list()?;
-            let json = serde_json::to_string_pretty(&tasks)?;
-            println!("{}", json);
+            let tasks = todo
+                .list()
+                .map_err(|e| anyhow::anyhow!("Failed to export tasks: {}", e))?;
+            println!("{}", serde_json::to_string_pretty(&tasks)?);
         }
         Commands::Clear => {
-            trace!("Clearing all tasks");
-            todo.clear();
+            if Confirm::new()
+                .with_prompt("Are you sure you want to clear all tasks?")
+                .default(false)
+                .interact()?
+            {
+                todo.clear()
+                    .map_err(|e| anyhow::anyhow!("Failed to clear tasks: {}", e))?;
+                println!("All tasks cleared successfully!");
+            }
         }
-    };
+    }
 
     Ok(())
 }
