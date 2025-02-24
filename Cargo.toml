@@ -16,7 +16,7 @@
 name = "todo"
 authors = ["mingcheng <mingcheng@apache.org"]
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 license = "MIT"
 description = "A simple todo list application"
 repository = "https://github.com/mingcheng/todo-rs"
